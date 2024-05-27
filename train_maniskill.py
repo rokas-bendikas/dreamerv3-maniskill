@@ -19,35 +19,6 @@ def cfg_to_group(cfg, return_list=False):
     return lst if return_list else "-".join(lst)
 
 
-# class WandBOutput:
-#     def __init__(self, cfg):
-#         # self._pattern = re.compile(pattern)
-#         wandb.init(
-#             project=cfg.wandb_project,
-#             entity=cfg.wandb_entity,
-#             name=str(cfg.seed),
-#             group=self.cfg_to_group(cfg),
-#             tags=self.cfg_to_group(cfg, return_list=True) + [f"seed:{cfg.seed}"],
-#             config=OmegaConf.to_container(cfg, resolve=True),
-#         )
-#         self._wandb = wandb
-
-#     def cfg_to_group(self, cfg, return_list=False):
-#         """Return a wandb-safe group name for logging. Optionally returns group name as list."""
-#         lst = [cfg.task, cfg.obs_mode, re.sub("[^0-9a-zA-Z]+", "-", cfg.exp_name)]
-#         return lst if return_list else "-".join(lst)
-
-#     def __call__(self, summaries):
-#         bystep = collections.defaultdict(dict)
-#         for step, name, value in summaries:
-#             try:
-#                 bystep[step][name] = float(value)
-#             except:
-#                 continue
-#         for step, metrics in bystep.items():
-#             self._wandb.log(metrics, step=step)
-
-
 def rand_str(length=6):
     chars = "abcdefghijklmnopqrstuvwxyz"
     return "".join(np.random.choice(list(chars)) for _ in range(length))
@@ -59,17 +30,13 @@ def train(cfg):
     config = config.update(
         {
             **dreamerv3.Agent.configs["size25m"],
+            **dreamerv3.Agent.configs["maniskill"],
             "task": cfg.task,
             "logdir": f"{cfg.logging_dir}/{cfg.task}-{cfg.exp_name}-{cfg.seed}-{rand_str()}",
             "seed": cfg.seed,
-            # "run.train_ratio": 512,
-            # "run.log_every": 120,  # Seconds
             "run.steps": cfg.steps,
             "run.eval_every": cfg.eval_freq,
             "run.eval_eps": cfg.eval_episodes,
-            "run.num_envs": 1,
-            # "batch_size": 16,
-            # "jax.prealloc": False,
             "replay.size": 1_000_000,
         }
     )
@@ -102,10 +69,10 @@ def train(cfg):
         return env
 
     def make_logger(model_config, project_config):
-        logdir = embodied.Path(model_config.logdir)
+        # logdir = embodied.Path(model_config.logdir)
         loggers = [
-            embodied.logger.TerminalOutput(model_config.filter),
-            embodied.logger.TensorBoardOutput(logdir),
+            embodied.logger.TerminalOutput(".*"),
+            # embodied.logger.TensorBoardOutput(logdir, 1),
         ]
         if project_config.wandb_enable:
             loggers.append(

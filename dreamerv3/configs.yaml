@@ -3,7 +3,7 @@ defaults:
   seed: 0
   method: name
   task: dummy_disc
-  logdir: /dev/null
+  logdir: ./logs/{timestamp}
   eval_dir: ''
   filter: 'score|length|fps|ratio|train/.*_loss$|train/rand/.*/mean'
   tensorboard_videos: True
@@ -84,6 +84,7 @@ defaults:
     dmc: {size: [64, 64], repeat: 2, image: True, camera: -1}
     procgen: {size: [64, 64]}
     loconav: {size: [64, 64], repeat: 2, camera: -1}
+    # maniskill: {size: [64, 64], image: True, camera: -1}
 
   # Agent
   report: True
@@ -228,6 +229,20 @@ crafter:
     steps: 1.1e6
   enc.spaces: 'image'
   dec.spaces: 'image'
+
+maniskill:
+  task: PushCube-v1-multicam-groundless
+  filter: 'score|length|fps|train/.*_loss$|'
+  run:
+    num_envs: 1
+    # log_keys_max: '^log_achievement_.*'
+    log_keys_sum: '^log_reward$|^log_success$'
+    log_video_fps: 1
+    train_ratio: 512
+    steps: 2.0e6
+    log_keys_video: ['image_wrist', 'image_cam1', 'image_cam2']
+  enc.spaces: 'image_wrist|image_cam1|image_cam2'
+  dec.spaces: 'image_wrist|image_cam1|image_cam2'
 
 dmc_proprio:
   <<: *size12m

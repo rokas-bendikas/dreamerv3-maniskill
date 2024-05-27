@@ -237,16 +237,22 @@ class ManiSkillObsWrapper(gymnasium.ObservationWrapper):
         obs_cam2 = Box(
             0, 255, shape=sensor_data["cam_additional_1/rgb"].shape, dtype=np.uint8
         )
-        self.observation_space.spaces["wrist_rgb"] = obs_wrist
-        self.observation_space.spaces["cam1_rgb"] = obs_cam1
-        self.observation_space.spaces["cam2_rgb"] = obs_cam2
+        self.observation_space.spaces["image_wrist"] = obs_wrist
+        self.observation_space.spaces["image_cam1"] = obs_cam1
+        self.observation_space.spaces["image_cam2"] = obs_cam2
+        self.observation_space.spaces["log_success"] = Box(
+            0, 1, shape=(1,), dtype=np.float32
+        )
+        self.observation_space.spaces["log_reward"] = Box(
+            -np.inf, +np.inf, shape=(1,), dtype=np.float32
+        )
 
     def observation(self, observation):
         sensor_data = flatten_dict_keys(observation["sensor_data"])
         return OrderedDict(
-            wrist_rgb=sensor_data["cam_wrist/rgb"],
-            cam1_rgb=sensor_data["cam_additional_0/rgb"],
-            cam2_rgb=sensor_data["cam_additional_1/rgb"],
+            image_wrist=sensor_data["cam_wrist/rgb"],
+            image_cam1=sensor_data["cam_additional_0/rgb"],
+            image_cam2=sensor_data["cam_additional_1/rgb"],
         )
 
 
@@ -256,12 +262,25 @@ class ManiSkillGymnasium2GymWrapper(gymnasium.Wrapper):
 
     def reset(self, *args, **kwargs):
         obs, info = self.env.reset(*args, **kwargs)
+        obs.update(
+            {
+                "log_success": np.array([False], dtype=np.float32),
+                "log_reward": np.array([0], dtype=np.float32),
+            }
+        )
         return obs
 
     def step(self, action):
         obs, reward, terminate, truncate, info = self.env.step(action)
         done = terminate or truncate
         info.update({"is_terminal": terminate})
+        obs["log_success"] = np.array([terminate], dtype=np.float32)
+        obs.update(
+            {
+                "log_success": np.array([terminate], dtype=np.float32),
+                "log_reward": np.array([reward], dtype=np.float32),
+            }
+        )
         return obs, reward, done, info
 
 

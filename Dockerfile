@@ -85,7 +85,6 @@
 #
 
 # System
-# FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 FROM nvidia/cudagl:11.3.1-devel-ubuntu20.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/San_Francisco
@@ -122,13 +121,13 @@ ENV MUJOCO_GL egl
 ENV NUMBA_CACHE_DIR /tmp
 
 # Agent
-COPY dreamerv3/dreamerv3/requirements.txt agent-requirements.txt
+COPY dreamerv3/requirements.txt agent-requirements.txt
 RUN pip install -r agent-requirements.txt \
   -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ENV XLA_PYTHON_CLIENT_MEM_FRACTION 0.8
 
 # Embodied
-COPY dreamerv3/embodied/requirements.txt embodied-requirements.txt
+COPY embodied/requirements.txt embodied-requirements.txt
 RUN pip install -r embodied-requirements.txt
 
 # Cloud
@@ -175,7 +174,7 @@ COPY vulkan/nvidia_icd.json /usr/share/vulkan/icd.d/nvidia_icd.json
 COPY vulkan/nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
 
 #  Additional installation
-RUN pip install hydra-core==1.3.2 wandb==0.16.6
+RUN pip install hydra-core==1.3.2 wandb==0.16.6 moviepy==1.0.3 imageio==2.34.0
 
 # Source
 COPY . .
