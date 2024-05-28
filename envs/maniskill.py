@@ -241,10 +241,10 @@ class ManiSkillObsWrapper(gymnasium.ObservationWrapper):
         self.observation_space.spaces["image_cam1"] = obs_cam1
         self.observation_space.spaces["image_cam2"] = obs_cam2
         self.observation_space.spaces["log_success"] = Box(
-            0, 1, shape=(1,), dtype=np.float32
+            0.0, 1.0, shape=(), dtype=np.float32
         )
         self.observation_space.spaces["log_reward"] = Box(
-            -np.inf, +np.inf, shape=(1,), dtype=np.float32
+            -np.inf, np.inf, shape=(), dtype=np.float32
         )
 
     def observation(self, observation):
@@ -264,8 +264,8 @@ class ManiSkillGymnasium2GymWrapper(gymnasium.Wrapper):
         obs, info = self.env.reset(*args, **kwargs)
         obs.update(
             {
-                "log_success": np.array([False], dtype=np.float32),
-                "log_reward": np.array([0], dtype=np.float32),
+                "log_success": np.float32(False),
+                "log_reward": np.float32(0),
             }
         )
         return obs
@@ -274,31 +274,67 @@ class ManiSkillGymnasium2GymWrapper(gymnasium.Wrapper):
         obs, reward, terminate, truncate, info = self.env.step(action)
         done = terminate or truncate
         info.update({"is_terminal": terminate})
-        obs["log_success"] = np.array([terminate], dtype=np.float32)
         obs.update(
             {
-                "log_success": np.array([terminate], dtype=np.float32),
-                "log_reward": np.array([reward], dtype=np.float32),
+                "log_success": np.float32(terminate),
+                "log_reward": np.float32(reward),
             }
         )
         return obs, reward, done, info
 
 
-def make_maniskill_env(cfg):
+class MultiTaskWrapper(gymnasium.Wrapper):
+    def __init__(self, envs):
+        self.mani_envs = envs
+        self.env = self.mani_envs[self._sample_task_idx()]
+
+    def _sample_task_idx(self):
+        return np.random.randint(len(self.mani_envs))
+
+    def reset(self, *args, **kwargs):
+        self.env = self.mani_envs[self._sample_task_idx()]
+        return self.env.reset(*args, **kwargs)
+
+    def close(self):
+        for env in self.mani_envs:
+            env.close()
+
+
+def make_maniskill_env(cfg, hydra_cfg):
     """
     Make ManiSkill3 environment.
     """
-    if cfg.task not in MANISKILL_TASKS:
-        raise UnknownTaskError(cfg.task)
-    env = gymnasium.make(
-        cfg.task,
-        obs_mode="rgbd",
-        control_mode="pd_ee_delta_pose",
-        randomize_cameras=True,
-        num_additional_cams=2,
-        near_far=[0.00001, 2.0],
-        cam_resolution=[64, 64],
-    )
+    if len(hydra_cfg.tasks) == 1:
+        task = hydra_cfg.tasks[0]
+        if task not in MANISKILL_TASKS:
+            raise UnknownTaskError(task)
+        env = gymnasium.make(
+            task,
+            obs_mode="rgbd",
+            control_mode="pd_ee_delta_pose",
+            randomize_cameras=True,
+            num_additional_cams=2,
+            near_far=[0.00001, 2.0],
+            cam_resolution=[64, 64],
+        )
+    else:
+        for task in hydra_cfg.tasks:
+            if task not in MANISKILL_TASKS:
+                raise UnknownTaskError(task)
+        envs = []
+        for task in hydra_cfg.tasks:
+            env = gymnasium.make(
+                task,
+                obs_mode="rgbd",
+                control_mode="pd_ee_delta_pose",
+                randomize_cameras=True,
+                num_additional_cams=2,
+                near_far=[0.00001, 2.0],
+                cam_resolution=[64, 64],
+            )
+            envs.append(env)
+            [env.reset(seed=cfg.seed) for env in envs]
+        env = MultiTaskWrapper(envs)
     env = ManiSkillCPUGymWrapper(env)
     env = ManiSkillObsWrapper(env)
     env = ManiSkillGymnasium2GymWrapper(env)

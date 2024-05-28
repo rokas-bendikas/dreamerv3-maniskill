@@ -232,11 +232,11 @@ crafter:
 
 maniskill:
   task: PushCube-v1-multicam-groundless
-  filter: 'score|length|fps|train/.*_loss$|'
+  filter: 'score|length|success|fps|train/.*_loss$|image_.*|.*_reward'
   run:
     num_envs: 1
-    # log_keys_max: '^log_achievement_.*'
-    log_keys_sum: '^log_reward$|^log_success$'
+    log_keys_sum: '^log_reward$'
+    log_keys_max: '^log_success$'
     log_video_fps: 1
     train_ratio: 512
     steps: 2.0e6

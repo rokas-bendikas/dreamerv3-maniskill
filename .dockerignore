@@ -1,3 +1,6 @@
 *.py[cod]
 __pycache__/
 dist
+logs/
+nautilus/
+wandb/
