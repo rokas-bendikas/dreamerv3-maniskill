@@ -40,6 +40,7 @@ def train(cfg):
             "logdir": f"{cfg.logging_dir}/{tasks_to_name(cfg.tasks)}-{cfg.exp_name}-{cfg.seed}-{rand_str()}",
             "seed": cfg.seed,
             "run.steps": cfg.steps,
+            "run.save_every": cfg.save_freq,
             "run.eval_every": cfg.eval_freq,
             "run.eval_eps": cfg.eval_episodes,
             "replay.size": 1_000_000,
